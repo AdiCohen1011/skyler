@@ -2,7 +2,7 @@
 
 > Adi Cohen - 213526213, yonathan 
 
-"Hi! I am an AI-powered chatbot using the Skyscanner API and natural language processing to assist in finding the right flight for you."
+"Hi! I am an AI-powered chatbot using the Booking API and natural language processing to assist in finding the right flight for you."
 
 This project was developed as part of the Natural Language Processing (NLP) course at the Holon Institute of Technology (HIT) during the Spring 2026 semester. It demonstrates the integration of Google Dialogflow ES, Python, and the Booking.com Flights API to create an intelligent travel assistant.
 
@@ -19,7 +19,7 @@ This project was developed as part of the Natural Language Processing (NLP) cour
   - [Python Client](#python-client)
     - [Preprocess Parameters](#preprocess-parameters)
     - [Extracting Parameters from the NLP Response](#extracting-parameters-from-the-nlp-response)
-  - [Skyscanner API](#skyscanner-api)
+  - [Booking API](#booking-api)
 - [Discussion](#discussion)
   - [Dialogflow](#dialogflow)
   - [Closing Remarks](#closing-remarks)
@@ -50,11 +50,11 @@ Here is what a conversation with Skylar might look like:
 
 ### Project Overview
 
-Skylar is made of three parts. The Python client is the frontend, which communicates with Dialogflow and Skyscanner in the backend. Users will not notice any of the backend parts involved, but will only interact with Skylar through their terminal. The following diagram explains the procedure visually.
+Skylar is made of three parts. The Python client is the frontend, which communicates with Dialogflow and Booking in the backend. Users will not notice any of the backend parts involved, but will only interact with Skylar through their terminal. The following diagram explains the procedure visually.
 
-![Sequence Diagram](img/figure2.png)
+![Sequence Diagram](img/Sequence_Diagram.png)
 
-The user interacts with the Python client through a terminal. The input of the user is typically forwarded to Dialogflow to figure out its intent. Dialogflow's answer is then prompted to the user in the terminal of the Python client. Eventually, Skylar's Dialogflow part gathered all the info needed in order to perform a Skyscanner API call. The Python client’s main task is to preprocess and orchestrate the data between the end user and the Skyscanner API.
+The user interacts with the Python client through a terminal. The input of the user is typically forwarded to Dialogflow to figure out its intent. Dialogflow's answer is then prompted to the user in the terminal of the Python client. Eventually, Skylar's Dialogflow part gathered all the info needed in order to perform a Booking API call. The Python client’s main task is to preprocess and orchestrate the data between the end user and the Booking API.
 
 We will cover each part in greater detail in the following chapters.
 
@@ -62,7 +62,7 @@ We will cover each part in greater detail in the following chapters.
 
 #### Intents
 
-![Dialogflow Intents](img/figure3.png)
+![Dialogflow Intents](img/Intents.png)
 
 The preceding figure shows the intents configured to book a flight with Skylar on Dialogflow. The screenshot does not represent the structure of the intents well.
 
@@ -72,70 +72,47 @@ To find out more about how the intents work together, the following flowchart cl
 
 During intent `flight.book`, Skylar will figure out most of the information needed to find suitable flights. Later on, other intents figure out additional information. These extra intents are required since we thought Skylar should understand the difference between a one-way and a round-trip flight. This way, if the user asks for a round-trip ticket, Skylar will also ask for a return date.
 
-#### Entities
+### Entities
 
-Dialogflow offers parameters that automatically get interpreted using natural language processing and mapped to a specific format. A date, for example, automatically gets mapped to the corresponding ISO date format. This makes parsing and handling of parameters much easier and enables text inputs like “tomorrow” to be handled correctly by the Python client, who would not know how to interpret such a value. Skylar uses built-in entities from Dialogflow to handle the following types:
+Google Cloud Dialogflow utilizes advanced Named Entity Recognition (NER) to automatically detect, capture, and extract key structural variables from unstructured user text. Instead of requiring the Python client to parse complex conversational phrasing (e.g., converting dynamic relative expressions like *"tomorrow"* or *"next Friday"* into absolute values), Dialogflow's NLP engine normalizes these tokens into standardized, predictable data formats (such as compliant ISO-8601 timestamps). 
 
-- Numbers `@sys.number`
-- Dates `@sys.date-time`
-- IATA codes of airports `@sys.airport`
-- Currencies `@sys.currency-name`
+By outsourcing data validation to these native system entities, the system guarantees strict typing and seamless integration before compiling the payload for external REST calls. Skylar relies on the following built-in system entities:
 
-The only entity that does not provide the needed format for the Skyscanner API is the parameter for the preferred cabin class. Fortunately, Dialogflow offers a very neat way to configure custom parameters through entities. The following figure shows how this custom parameter is configured for Skylar.
+* **`@sys.number`** – Dynamically parses passenger counts (adults/children) into clean integers.
+* **`@sys.date-time`** – Automatically normalizes natural language dates into query-ready timestamps.
+* **`@sys.airport`** – Extracts geographical locations and directly maps airport names to their respective 3-letter IATA codes.
+* **`@sys.currency-name`** – Identifies and captures standard ISO currency preferences (e.g., USD, ILS, EUR) for financial consistency.
 
-![Entity Configuration in Dialogflow](img/figure5.png)
+### 🖥️ The Python Client (Core System Orchestrator)
 
-### Python Client
+The Python runtime engine (`client.py`) serves as the central stateful orchestrator of the entire system. It acts as an abstraction layer that seamlessly manages data pipeline transitions between the end-user's terminal interface, the remote Google Cloud Dialogflow NLP engine, and the downstream Booking.com REST APIs. By handling session states and response routing, the client ensures a fluid, event-driven user experience from the initial prompt to the final data rendering.
 
-When first starting `client.py`, the Python client will ask for the user's name. Knowing the user's name is not functional but purely for cosmetic reasons. To better understand who said what during the conversation, the name of the message's author is displayed on the front of each message.
+#### 👤 Session Personalization & Interface Lifecycle
+Upon initialization, the client captures the user's identity to establish runtime session personalization. While non-functional regarding data processing, mapping the user's name establishes clear conversational ownership in the terminal logs, prepending the message author to every string injection in the console interface.
 
-![Start of Conversation](img/figure6.png)
+![Start of Conversation](img/Start_of_Conversation.png)
 
-Behind the scenes the Python client connects to the Dialogflow API and forwards the messages between the natural language processing (NLP) and the user. This way, the user does not know that he is actually talking to an NLP, and a natural conversation flow is guaranteed. The part of the Python client that handles the forwarding of messages continues until the context "flight.book - show-flight" is active, which indicates that the Python client should fetch the flights from the Skyscanner API and show the result to the user. The user may then choose a flight and proceed to open the displayed hyperlink to get redirected to the booking agency to actually finish the booking process.
+#### 🔄 Conversational Routing & API Triggering
+Behind the scenes, the client handles asynchronous message forwarding to the Google Dialogflow API, abstracts the underlying cloud infrastructure, and maintains an organic chat flow. 
 
-#### Preprocess Parameters
+The conversation loop runs continuously until Dialogflow activates the targeted intent context (`flight_book-show_flight` / `execute_flight_search`). This structural token signal stops the text routing, shifts the client into data-acquisition mode, and triggers the live network request to the **Booking.com Flights API** wrapper. Once the parsed results are rendered in the console UI, the user is provided with deep-link hyperlinks to seamlessly redirect them to external booking agencies and complete the transaction.
 
-The built-in entities of Dialogflow combined with the possibility to add custom entities make preprocessing by the Python client mostly obsolete. The only task for the Python client is to extract the right parameters and map them to the corresponding parameters of the request to the Skyscanner API.
+#### ⚙️ Entity Normalization & Request Parameter Mapping
 
+Due to the robust NLP capabilities of Google Cloud Dialogflow, native system entities (such as `@sys.date`, `@sys.number`, and custom developer entities) handle the bulk of data validation and formatting automatically, eliminating the need for heavy local preprocessing. Consequently, the Python client's main responsibility is orchestration—extracting these validated tokens from the dialog state and mapping them directly to the key-value structures required by our downstream REST API endpoints. This architectural separation keeps the client light and ensures a predictable data schema before executing the external network request.
 
 #### Extracting Parameters from the NLP Response
 
 All parameters are saved inside of a context. In order to get all parameters at once, the Python client iterates over all contexts and extracts their parameters.
 
-![Parameter Extraction Code](img/figure7.png)
+![Parameter Extraction Code](img/Parameters.png)
 
-### Skyscanner API
+## Booking.com API Integration
+The flight aggregation core is dynamically powered by the live **Booking.com Flights API** via RapidAPI. Once the Dialogflow state engine satisfies all conversational slot-filling requirements, `client.py` extracts the sanitized parameters and invokes the `fetchFlights()` routine inside `ApiHandler.py`. 
 
-The Skyscanner API is a powerful interface that provides many endpoints to fetch data concerning flights. Unfortunately, its usage is not always straightforward, and the documentation sometimes lacks in detail. Nevertheless, it is a worthy data provider for Skylar.
+This specialized wrapper executes an authenticated RESTful HTTP `GET` request populated with live travel markers (IATA airport codes, cabin classes, local currencies, and structured timestamps). The engine handles a highly nested upstream JSON response, programmatically traversing complex arrays to map critical distributed data points—such as multi-segment flight legs, airline carrier metadata, baggage configurations, and exact currency breakdowns (`priceBreakdown.totalRounded`)—directly into our terminal interface layer.
 
-A simple request payload, which the Python client could dispatch, is displayed in the figure on the right. The API returns approximately 2000 lines of JSON data, containing flights, prices, agencies, carriers (a.k.a. airlines), deep links to the agent’s website, sorting options, statistics, and so on.
-
-```json
-{ 
-    "query": {
-        "market": "CH",
-        "locale": "de-DE",
-        "currency": "CHF",
-        "queryLegs": [
-            {
-                "date": {
-                    "day": 1,
-                    "month": 4,
-                    "year": 2023
-                },
-                "originPlaceId": {
-                    "iata": "ZRH"
-                },
-                "destinationPlaceId": {
-                    "iata": "LAX"
-                }
-            }
-        ],
-        "adults": 1,
-        "cabinClass": "CABIN_CLASS_ECONOMY"
-    }
-}
-```
+![Live JSON Payload structure returned from the Booking API](img/booking_payload.png)
 
 ## Discussion
 
@@ -153,8 +130,8 @@ With that being said, realizing a project like this would have been impossible b
 
 ## Closing Remarks
 
-Contrary to the first belief, the possibilities of AI in the form we are using it (Google Cloud Dialogflow) are still relatively limited. Making sure all the components work well together poses another set of new challenges and limitations since in our case we are basically limited to what data Skyscanner wants to hear. This of course was preset by the architecture we chose to use.
+Contrary to our initial beliefs, the capabilities of AI in the form we are using it (Google Cloud Dialogflow) are still relatively limited. Making sure all the components work well together poses another set of challenges and limitations, since in our case we are basically limited to the exact data structures that the Booking.com API requires. This, of course, was predetermined by the architecture we chose to use.
 
-Nevertheless, chatbots, in general, have great potential because they can filter intent out of natural language, which is undoubtedly helpful and saves lots of manual clicking and navigating of an application or a terminal. We see natural language processing as most valuable when actually speaking to a bot instead of typing (e.g. Google Assistant, Siri).
+Nevertheless, chatbots in general have great potential because they can extract intent out of natural language, which is undoubtedly helpful and saves a lot of manual clicking and navigating through an application or a terminal. We see natural language processing as most valuable when actually speaking to a bot instead of typing (e.g., Google Assistant, Siri).
 
-It has been exciting for us to play around in Google's Cloud Platform. Looking back, we definitely learned a lot, and we are happy with the result of our work, even though we ended up spending more time than we had initially anticipated.
+It has been exciting for us to explore Google Cloud Platform. Looking back, we definitely learned a lot, and we are very happy with the final results of our work.
