@@ -12,9 +12,9 @@ LANGUAGE_CODE = "en"
 
 
 if __name__ == "__main__":
-    user_name = input("Skylar: Hey there 👋 Please enter your name: ")
+    user_name = input("skyler: Hey there 👋 Please enter your name: ")
 
-    print(f"Skylar: Hi {user_name}, I am an AI-powered chatbot using the Booking API and natural language "
+    print(f"skyler: Hi {user_name}, I am an AI-powered chatbot using the Booking API and natural language "
           f"processing to assist in finding the right flight for you.")
 
     session_client = dialogflow.SessionsClient()
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         user_text = input(f"{user_name}: ")
         
         if user_text.lower() in ['exit', 'quit', 'bye']:
-            print("Skylar: Safe travels! Goodbye!")
+            print("skyler: Safe travels! Goodbye!")
             break
 
         text_input = dialogflow.TextInput(text=user_text, language_code=LANGUAGE_CODE)
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             request={"session": session, "query_input": query_input}
         )
 
-        print("Skylar: " + response.query_result.fulfillment_text)
+        print("skyler: " + response.query_result.fulfillment_text)
         
         action_name = response.query_result.action
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
             )
 
             if not sortingOptions or not sortingOptions.get(sort_order_param):
-                print(f"Skylar: No scheduling options available for metric preference '{sort_order_param}'.")
+                print(f"skyler: No scheduling options available for metric preference '{sort_order_param}'.")
                 continue
 
             flight_list = []
