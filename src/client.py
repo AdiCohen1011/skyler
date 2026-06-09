@@ -10,7 +10,6 @@ console = Console()
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = './skylerproject-u9os-82ab9724341d.json'
 LANGUAGE_CODE = "en"
 
-
 if __name__ == "__main__":
     user_name = input("skyler: Hey there 👋 Please enter your name: ")
 
@@ -38,18 +37,22 @@ if __name__ == "__main__":
         
         action_name = response.query_result.action
 
+        # Trigger logic only when Dialogflow completes slot filling (intent reached)
         if action_name == 'execute_flight_search':
             
+            # Extract all parameters collected across different Dialogflow context stages
             all_values = {}
             for context in response.query_result.output_contexts:
                 if context.parameters:
                     for key in context.parameters.keys():
                         val = context.parameters.get(key)
+                        # Handle nested dictionaries returned by Dialogflow entities
                         if hasattr(val, 'items'):
                             all_values[key] = dict(val.items())
                         else:
                             all_values[key] = val
 
+            # Normalize parameters for the API call
             sort_order_param = all_values.get('sort-order') if all_values.get('sort-order') else 'best'
             currency = all_values.get('currency', 'ILS')
             adults = int(all_values.get('adults', 1))
@@ -59,6 +62,7 @@ if __name__ == "__main__":
             from_date = all_values.get('departure_date')
             return_date = all_values.get('return_date')
             
+            # Extract IATA codes from airport entity objects
             from_airport_obj = all_values.get('departure_airport', {})
             to_airport_obj = all_values.get('destination_airport', {})
             
@@ -68,11 +72,13 @@ if __name__ == "__main__":
             from_airport = str(from_airport) if from_airport else ""
             to_airport = str(to_airport) if to_airport else ""
 
+            # Clean ISO-8601 date strings to match API requirement (YYYY-MM-DD)
             if isinstance(from_date, str) and 'T' in from_date:
                 from_date = from_date.split('T')[0]
             if isinstance(return_date, str) and 'T' in return_date:
                 return_date = return_date.split('T')[0]
                 
+            # Perform API call and process the complex JSON response
             all_flights, legs, carriers, sortingOptions, agents = fetchFlights(
                 from_airport, to_airport, currency=currency, adults=adults, 
                 children=children, from_date=from_date, return_date=return_date, cabin_class=cabin_class
@@ -82,12 +88,14 @@ if __name__ == "__main__":
                 print(f"skyler: No scheduling options available for metric preference '{sort_order_param}'.")
                 continue
 
+            # Parse results into a flat list structure for table rendering
             flight_list = []
             for sort in sortingOptions.get(sort_order_param):
                 used_legs = list(map(lambda it: legs.get(it), all_flights.get(sort.get('itineraryId')).get('legIds')))
 
+                # Map pricing options and flatten for readability
                 pricing_options = list(map(lambda po: list(map(lambda p: {'price': p.get('price'), 'agent': agents.get(p.get('agentId')).get('name'), 'deepLink': p.get('deepLink')}, po.get('items'))), all_flights.get(sort.get('itineraryId')).get('pricingOptions')))
-                pricing_options = [item for sublist in pricing_options for item in sublist] # Flatten list
+                pricing_options = [item for sublist in pricing_options for item in sublist] 
 
                 for leg in used_legs:
                     if not leg:
@@ -102,8 +110,10 @@ if __name__ == "__main__":
                     
                     flight_list.append(found_flight)
 
+            # Limit to top 10 results for console display
             top_ten_results = flight_list[0:10]
 
+            # Initialize Rich table for clean UI representation
             table = Table(show_header=True, header_style='bold yellow')
             table.add_column('Price')
             table.add_column('Stop Count')
@@ -120,11 +130,13 @@ if __name__ == "__main__":
             get_date = lambda d: "{0:0>2}".format(d.get('day')) + '.' + "{0:0>2}".format(d.get('month')) + '.' + str(d.get('year')) if isinstance(d, dict) else str(d)
             get_time = lambda d: "{0:0>2}".format(d.get('hour')) + ':' + "{0:0>2}".format(d.get('minute')) if isinstance(d, dict) else str(d)
 
+            # Fill table rows
             for row in top_ten_results:
                 duration_hours = int(row.get('durationInMinutes') / 60)
                 duration_minutes = row.get('durationInMinutes') % 60
                 duration_text = f"{duration_hours}h {duration_minutes}min"
                 
+                # Format price strings with agent names
                 price = '\n or '.join(list(map(lambda po: str(float(po.get('price').get('amount') or 0) / 1000) + ' ' + currency + ' on ' + po.get('agent'), row.get('pricingOptions'))))
                 hyperLinks = '\n or '.join(list(map(lambda po: f'[link={po.get("deepLink")}]{po.get("agent")}[/link]', row.get('pricingOptions'))))
                 
