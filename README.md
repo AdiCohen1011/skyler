@@ -1,4 +1,4 @@
-# Skylar
+# skyler
 
 > Adi Cohen - 213526213
 
@@ -21,7 +21,7 @@ This project was developed as part of the Natural Language Processing (NLP) cour
 
 ## Introduction
 
-Skylar is a conversational AI application that simplifies the process of searching for flights. Instead of manually navigating travel websites, users can simply chat with the assistant in natural language and provide the information needed to find suitable flights.
+skyler is a conversational AI application that simplifies the process of searching for flights. Instead of manually navigating travel websites, users can simply chat with the assistant in natural language and provide the information needed to find suitable flights.
 
 The chatbot is built using Google Dialogflow ES for natural language understanding and a Python client that communicates with the Booking API to retrieve flight information.
 
@@ -29,35 +29,35 @@ The main objective of this project is to demonstrate how Natural Language Proces
 
 ## Functionality
 
-Skylar will ask you about all the details needed, such as where you want to fly to, what your departure airport is, and how many adults you wish to book the flight for. Then, it will present the ten most suitable flights for you, including their actual prices. On top of that, the user can choose between three different sorting options (best, cheapest, fastest) to get a better overview of the found flights. After choosing a flight, there's a deeplink the user may open to actually finish the booking and pay for the flight.
+skyler will ask you about all the details needed, such as where you want to fly to, what your departure airport is, and how many adults you wish to book the flight for. Then, it will present the ten most suitable flights for you, including their actual prices. On top of that, the user can choose between three different sorting options (best, cheapest, fastest) to get a better overview of the found flights. After choosing a flight, there's a deeplink the user may open to actually finish the booking and pay for the flight.
 
-But why should anyone even bother using Skylar instead of using Booking.com directly? Websites are typically filled with ads and distracting content. Skylar just wants to help you with your flight, cuts out all the clutter, and helps guide you through the process easily.
+But why should anyone even bother using skyler instead of using Booking.com directly? Websites are typically filled with ads and distracting content. skyler just wants to help you with your flight, cuts out all the clutter, and helps guide you through the process easily.
 
-We envision being able to talk to Skylar in the future to fully realize its potential and usability, since talking is much more convenient than typing.
+We envision being able to talk to skyler in the future to fully realize its potential and usability, since talking is much more convenient than typing.
 
 ### Conversation Snippet
-Here is what a conversation with Skylar might look like:
+Here is what a conversation with skyler might look like:
 ![Conversation Snippet](img/Example_Conversation.png)
 
 ## Project Overview
 
-Skylar is made of three parts. The Python client is the frontend, which communicates with Dialogflow and Booking in the backend. Users will not notice any of the backend parts involved, but will only interact with Skylar through their terminal. 
+skyler is made of three parts. The Python client is the frontend, which communicates with Dialogflow and Booking in the backend. Users will not notice any of the backend parts involved, but will only interact with skyler through their terminal. 
 
 ![Sequence Diagram](img/Sequence_Diagram.png)
 
-The user interacts with the Python client through a terminal. The input of the user is typically forwarded to Dialogflow to figure out its intent. Dialogflow's answer is then prompted to the user in the terminal of the Python client. Eventually, Skylar's Dialogflow part gathered all the info needed in order to perform a Booking API call. 
+The user interacts with the Python client through a terminal. The input of the user is typically forwarded to Dialogflow to figure out its intent. Dialogflow's answer is then prompted to the user in the terminal of the Python client. Eventually, skyler's Dialogflow part gathered all the info needed in order to perform a Booking API call. 
 
 ## Dialogflow Agent
 
 ### Intents
 ![Dialogflow Intents](img/Intents.png)
 
-The preceding figure shows the intents configured to book a flight with Skylar. To map the intent structure and the purpose of each intent, the following flowchart clarifies the dependencies and the context flow:
+The preceding figure shows the intents configured to book a flight with skyler. To map the intent structure and the purpose of each intent, the following flowchart clarifies the dependencies and the context flow:
 
 ![Flowchart of the Dialogflow Intents](img/figure4.png)
 
 ### Entities
-Google Cloud Dialogflow utilizes Named Entity Recognition (NER) to automatically detect and extract key variables from unstructured text. Skylar relies on the following built-in system entities:
+Google Cloud Dialogflow utilizes Named Entity Recognition (NER) to automatically detect and extract key variables from unstructured text. skyler relies on the following built-in system entities:
 * **`@sys.number`** – Parses passenger counts into integers.
 * **`@sys.date-time`** – Normalizes natural language dates into query-ready timestamps.
 * **`@sys.airport`** – Maps airport names to 3-letter IATA codes.
